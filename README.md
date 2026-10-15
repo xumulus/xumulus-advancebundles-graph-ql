@@ -50,7 +50,7 @@ The module has no settings of its own. It follows the main module's **Enable** s
         items {
           uid
           title
-          xab_visible          # false: the option is hidden; the storefront adds its default selections
+          xab_visible          # false: hidden; send its is_default items yourself (see below)
           xab_cms_block        # CMS block identifier (or numeric id) as stored on the option
           xab_cms_block_html   # that block rendered for the current store
           xab_gallery_single   # gallery options: single choice (true) or several (false)
@@ -79,7 +79,7 @@ The module has no settings of its own. It follows the main module's **Enable** s
 
 | Field | Type | Value |
 |---|---|---|
-| `BundleItem.xab_visible` | Boolean | `false` when the option is set to hidden. |
+| `BundleItem.xab_visible` | Boolean | `false` when the option is set to hidden. The storefront then submits the option's default selections itself; a headless client should send the option's `is_default` items in `selected_options`. The server neither adds nor enforces them. |
 | `BundleItem.xab_cms_block` | String | The option's CMS block reference as stored, or null. |
 | `BundleItem.xab_cms_block_html` | String | The block's content for the current store, with directives and widgets processed. Null when no active block is assigned to the store. |
 | `BundleItem.xab_gallery_single` | Boolean | Whether a gallery option allows a single choice. |

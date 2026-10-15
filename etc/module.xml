@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Xumulus. All rights reserved.
+ * See LICENSE.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Xumulus_AdvanceBundlesGraphQl">
+        <sequence>
+            <module name="Magento_BundleGraphQl"/>
+            <module name="Magento_QuoteGraphQl"/>
+            <module name="Magento_Widget"/>
+            <module name="Xumulus_AdvanceBundles"/>
+        </sequence>
+    </module>
+</config>

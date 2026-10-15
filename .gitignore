@@ -1,0 +1,10 @@
+# OS and editor cruft
+.DS_Store
+**/.DS_Store
+
+# Agent workspace
+.claude/
+
+# Test tooling output
+/.phpunit.cache/
+/.phpunit.result.cache

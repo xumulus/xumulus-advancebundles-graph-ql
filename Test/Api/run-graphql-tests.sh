@@ -15,6 +15,9 @@
 #                    '000000003 qa-order@example.test Tester'; its xab_customizations must list the texts.
 #   XAB_LEGACY_CART  Masked id of a guest cart filled with 1.3.x. With XAB_DB, both are compared with the
 #                    additional_options lines stored on the items.
+#   XAB_CUSTOMER     "email password" of a customer, to also test the wishlist bridge
+#                    (Xumulus_AdvanceBundlesGraphQlWishlist). Its default wishlist is emptied first, and moved items
+#                    land in its cart.
 #
 # Fixtures (see the main module's Test/e2e): XAB-BUNDLE-DYN (2046) with options 5 select, 6 radio (CMS block
 # xab-option-note), 7 checkbox, 8 multi (hidden); child XAB-A (2041) has the text custom option 1 "Engraving
@@ -33,12 +36,13 @@ FAIL=0
 
 b64() { printf '%s' "$1" | base64; }
 
-# gql QUERY [VARIABLES_JSON] -> response JSON on stdout
+# gql QUERY [VARIABLES_JSON] [BEARER_TOKEN] -> response JSON on stdout
 gql() {
-    local vars="${2:-}"
+    local vars="${2:-}" auth=()
     [ -z "$vars" ] && vars='{}'
+    [ -n "${3:-}" ] && auth=(-H "Authorization: Bearer $3")
     jq -n --arg q "$1" --argjson v "$vars" '{query: $q, variables: $v}' \
-        | curl -sk "$URL" -H 'Content-Type: application/json' -H "Store: $STORE" --data @-
+        | curl -sk "$URL" -H 'Content-Type: application/json' -H "Store: $STORE" ${auth[@]+"${auth[@]}"} --data @-
 }
 
 # check NAME JSON JQ_FILTER: passes when the filter yields true
@@ -67,7 +71,7 @@ ADD='mutation($cart: String!, $items: [CartItemInput!]!) {
         ... on BundleCartItem {
           bundle_options { id values { id quantity } }
           xab_customizations {
-            uid option_id option_label selection_id selection_label custom_option_id title type value
+            uid bundle_option_id option_label bundle_selection_id selection_label custom_option_id title type value
           }
         }
       }
@@ -97,7 +101,8 @@ SCHEMA=$(gql '{
   bundleItemOption: __type(name: "BundleItemOption") { fields { name } }
   customOption: __type(name: "XabBundleItemCustomOption") { fields { name } }
   cartItem: __type(name: "BundleCartItem") { fields { name } }
-  orderItem: __type(name: "BundleOrderItem") { fields { name } }
+  orderItem: __type(name: "BundleOrderItem") { fields { name type { kind } } }
+  customization: __type(name: "XabBundleItemCustomization") { fields { name } }
 }')
 check "introspection: BundleItem has the xab fields" "$SCHEMA" \
     '[.data.bundleItem.fields[].name] | contains(["xab_visible","xab_cms_block","xab_cms_block_html","xab_gallery_single"])'
@@ -106,7 +111,10 @@ check "introspection: BundleItemOption has the xab fields" "$SCHEMA" \
 check "introspection: XabBundleItemCustomOption" "$SCHEMA" \
     '[.data.customOption.fields[].name] | sort == ["max_characters","option_id","price","price_type","required","sort_order","title","type","uid"]'
 check "introspection: BundleCartItem.xab_customizations" "$SCHEMA" '[.data.cartItem.fields[].name] | index("xab_customizations") != null'
-check "introspection: BundleOrderItem.xab_customizations" "$SCHEMA" '[.data.orderItem.fields[].name] | index("xab_customizations") != null'
+check "introspection: BundleOrderItem.xab_customizations is a non-null list, like BundleCartItem's" "$SCHEMA" \
+    '.data.orderItem.fields[] | select(.name == "xab_customizations") | .type.kind == "NON_NULL"'
+check "introspection: XabBundleItemCustomization names the bundle ids bundle_option_id / bundle_selection_id" "$SCHEMA" \
+    '[.data.customization.fields[].name] | sort == ["bundle_option_id","bundle_selection_id","custom_option_id","option_label","selection_label","title","type","uid","value"]'
 
 # --- Product fields ------------------------------------------------------------------------------------------------
 PRODUCT=$(gql '{
@@ -176,7 +184,7 @@ else
     check "no extra items: exactly the three chosen selections" "$R" \
         '[.data.addProductsToCart.cart.items[0].bundle_options[] | [.id, [.values[].id]]] == [[5,[9]],[6,[15]],[7,[19]]]'
     check "cart line shows both customizations, numeric text kept as text" "$R" \
-        "[.data.addProductsToCart.cart.items[0].xab_customizations[] | [.uid, .option_id, .option_label, .selection_id, .selection_label, .custom_option_id, .title, .type, .value]] == [[\"$(b64 xab-custom/5/9/1)\",5,\"Select Option\",9,\"AB Child Alpha\",1,\"Engraving text\",\"field\",\"23\"],[\"$(b64 xab-custom/7/19/1)\",7,\"Checkbox Option\",19,\"AB Child Alpha\",1,\"Engraving text\",\"field\",\"Happy Birthday\"]]"
+        "[.data.addProductsToCart.cart.items[0].xab_customizations[] | [.uid, .bundle_option_id, .option_label, .bundle_selection_id, .selection_label, .custom_option_id, .title, .type, .value]] == [[\"$(b64 xab-custom/5/9/1)\",5,\"Select Option\",9,\"AB Child Alpha\",1,\"Engraving text\",\"field\",\"23\"],[\"$(b64 xab-custom/7/19/1)\",7,\"Checkbox Option\",19,\"AB Child Alpha\",1,\"Engraving text\",\"field\",\"Happy Birthday\"]]"
 
     CARTQ=$(gql 'query($c: String!) { cart(cart_id: $c) { items { ... on BundleCartItem { xab_customizations { value } } } } }' \
         "$(jq -n --arg c "$CART" '{c: $c}')")
@@ -224,6 +232,80 @@ else
         '.data.addProductsToCart.user_errors[0].message == "Wrong format of the entered option data"'
     R=$(add XAB-A '[]' "[$(entered xab-custom/5/9/1 x)]")
     check "xab uid on a simple product: rejected" "$R" '.data.addProductsToCart.user_errors | length == 1'
+    R=$(add XAB-A "$(jq -n --arg a "$S5_9" '[$a]')" "[$(entered xab-custom/5/9/1 x)]")
+    check "regression: xab uid on a simple product sent with core bundle uids: rejected, nothing added" "$R" \
+        '(.data.addProductsToCart.user_errors[0].message | test("only be entered for a bundle product")) and .data.addProductsToCart.cart.total_quantity == 0'
+    R=$(add XAB-A "$(jq -n --arg a "$S5_9" '[$a]')" '[]')
+    check "a simple product sent with core bundle uids but no texts: added as before" "$R" \
+        '.data.addProductsToCart.user_errors == [] and .data.addProductsToCart.cart.total_quantity == 1'
+    R=$(add XAB-BUNDLE-DYN "$DYN_SEL" "[$(entered xab-custom/5/9/1 First), $(entered xab-custom/5/9/1 Second)]")
+    check "regression: the same uid twice in one cart item: rejected, nothing added" "$R" \
+        '(.data.addProductsToCart.user_errors[0].message | test("sent more than once")) and .data.addProductsToCart.cart.total_quantity == 0'
+
+    # Legacy addBundleProductsToCart: no input for texts, but required ones are enforced the same way
+    LEGACY_ADD='mutation($cart: String!, $sku: String!, $opts: [BundleOptionInput!]!) {
+      addBundleProductsToCart(input: {cart_id: $cart, cart_items: [{data: {sku: $sku, quantity: 1}, bundle_options: $opts}]}) {
+        cart { total_quantity items { ... on BundleCartItem { xab_customizations { value } } } }
+      }
+    }'
+    legacy_add() {
+        gql "$LEGACY_ADD" "$(jq -n --arg c "$(new_cart)" --arg sku "$1" --argjson o "$2" '{cart: $c, sku: $sku, opts: $o}')"
+    }
+    R=$(legacy_add XAB-BUNDLE-FIX '[{"id":9,"quantity":1,"value":["29"]},{"id":10,"quantity":1,"value":["35"]},{"id":11,"quantity":1,"value":["40"]},{"id":12,"quantity":1,"value":["45"]}]')
+    check "regression: addBundleProductsToCart with a required engraving it cannot send: refused" "$R" \
+        '(.errors[0].message | test("Please enter \"Engraving text\" for \"AB Child Alpha\"")) and .data.addBundleProductsToCart == null'
+    R=$(legacy_add XAB-BUNDLE-DYN '[{"id":5,"quantity":1,"value":["9"]},{"id":6,"quantity":1,"value":["15"]},{"id":7,"quantity":1,"value":["19"]}]')
+    check "addBundleProductsToCart without required texts: added as before" "$R" \
+        '.errors == null and .data.addBundleProductsToCart.cart.total_quantity == 1 and .data.addBundleProductsToCart.cart.items[0].xab_customizations == []'
+fi
+
+# --- Wishlist bridge (Xumulus_AdvanceBundlesGraphQlWishlist) -------------------------------------------------------
+if [ -n "${XAB_CUSTOMER:-}" ] && [ "$EXPECT_DISABLED" != 1 ]; then
+    read -r C_EMAIL C_PASSWORD <<<"$XAB_CUSTOMER"
+    TOKEN=$(gql 'mutation($e: String!, $p: String!) { generateCustomerToken(email: $e, password: $p) { token } }' \
+        "$(jq -n --arg e "$C_EMAIL" --arg p "$C_PASSWORD" '{e: $e, p: $p}')" | jq -r '.data.generateCustomerToken.token // empty')
+    check "wishlist: customer token" "$(jq -n --arg t "$TOKEN" '{t: $t}')" '.t != ""'
+    WL=$(gql '{ customer { wishlists { id items_v2 { items { id } } } } }' '' "$TOKEN")
+    WL_ID=$(printf '%s' "$WL" | jq -r '.data.customer.wishlists[0].id')
+    OLD_ITEMS=$(printf '%s' "$WL" | jq -c '[.data.customer.wishlists[0].items_v2.items[].id]')
+    if [ "$OLD_ITEMS" != "[]" ]; then
+        gql 'mutation($w: ID!, $i: [ID!]!) { removeProductsFromWishlist(wishlistId: $w, wishlistItemsIds: $i) { user_errors { message } } }' \
+            "$(jq -n --arg w "$WL_ID" --argjson i "$OLD_ITEMS" '{w: $w, i: $i}')" "$TOKEN" >/dev/null
+    fi
+    WL_ADD='mutation($w: ID!, $items: [WishlistItemInput!]!) {
+      addProductsToWishlist(wishlistId: $w, wishlistItems: $items) {
+        user_errors { code message }
+        wishlist { items_v2 { items { id product { sku } } } }
+      }
+    }'
+    wl_add() {
+        gql "$WL_ADD" "$(jq -n --arg w "$WL_ID" --argjson sel "$1" --argjson ent "$2" \
+            '{w: $w, items: [{sku: "XAB-BUNDLE-FIX", quantity: 1, selected_options: $sel, entered_options: $ent}]}')" "$TOKEN"
+    }
+    FIX_ALL=$(jq -n --arg a "$(b64 bundle/9/29/1)" --arg b "$(b64 bundle/10/35/1)" --arg c "$(b64 bundle/11/40/1)" --arg d "$(b64 bundle/12/45/1)" '[$a, $b, $c, $d]')
+
+    R=$(wl_add "$FIX_ALL" "[$(entered xab-custom/9/30/1 x)]")
+    check "regression: wishlist uid for an item that is not chosen: user error" "$R" \
+        '.data.addProductsToWishlist.user_errors[0].message | test("not selected")'
+    R=$(wl_add "$FIX_ALL" "[$(entered xab-custom/9/29/1 A), $(entered xab-custom/9/29/1 B)]")
+    check "wishlist: the same uid twice: user error" "$R" '.data.addProductsToWishlist.user_errors[0].message | test("sent more than once")'
+    R=$(wl_add "$FIX_ALL" "[$(entered xab-custom/9/29/1 WishText)]")
+    check "regression: wishlist bundle with engravings: saved without user errors" "$R" \
+        '.data.addProductsToWishlist.user_errors == [] and ([.data.addProductsToWishlist.wishlist.items_v2.items[].product.sku] == ["XAB-BUNDLE-FIX"])'
+    WL_ITEM=$(printf '%s' "$R" | jq -r '.data.addProductsToWishlist.wishlist.items_v2.items[0].id')
+    if [ -n "${XAB_DB:-}" ]; then
+        DB_REQ=$(printf '%s\n' "SELECT value FROM wishlist_item_option WHERE wishlist_item_id = $WL_ITEM AND code = 'info_buyRequest';" | $XAB_DB)
+        check "database: the wishlist item stores the texts in bundle_custom_option" "$DB_REQ" \
+            '.bundle_custom_option == {"9":{"29":{"1":"WishText"}}}'
+    fi
+    R=$(gql 'mutation($w: ID!, $i: [ID!]!) {
+      addWishlistItemsToCart(wishlistId: $w, wishlistItemIds: $i) { status add_wishlist_items_to_cart_user_errors { message } }
+    }' "$(jq -n --arg w "$WL_ID" --arg i "$WL_ITEM" '{w: $w, i: [$i]}')" "$TOKEN")
+    check "regression: addWishlistItemsToCart moves the bundle whose engraving is required" "$R" \
+        '.data.addWishlistItemsToCart.status == true and .data.addWishlistItemsToCart.add_wishlist_items_to_cart_user_errors == []'
+    R=$(gql '{ customerCart { items { product { sku } ... on BundleCartItem { xab_customizations { bundle_option_id bundle_selection_id value } } } } }' '' "$TOKEN")
+    check "wishlist: the cart line carries the engraving of the select option" "$R" \
+        '[.data.customerCart.items[] | select(.product.sku == "XAB-BUNDLE-FIX") | .xab_customizations[] | select(.value == "WishText") | [.bundle_option_id, .bundle_selection_id]] | any(. == [9,29])'
 fi
 
 # --- Carts and orders created with 1.3.x -------------------------------------------------------------------------

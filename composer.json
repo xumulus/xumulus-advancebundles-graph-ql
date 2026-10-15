@@ -2,7 +2,6 @@
     "name": "xumulus/advancebundles-graph-ql",
     "description": "GraphQL support for Xumulus Advanced Bundles: bundle option settings, bundle item custom options and add to cart with engraving text.",
     "type": "magento2-module",
-    "version": "2.0.0",
     "license": "proprietary",
     "require": {
         "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0||~8.5.0",

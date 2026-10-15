@@ -114,9 +114,9 @@ class Customizations implements ResolverInterface
 
         return [
             'uid' => $this->uid->encode($optionId, $selectionId, $customOptionId),
-            'option_id' => $optionId ?: null,
+            'bundle_option_id' => $optionId ?: null,
             'option_label' => isset($entry[Entry::OPTION_TITLE]) ? (string)$entry[Entry::OPTION_TITLE] : null,
-            'selection_id' => $selectionId ?: null,
+            'bundle_selection_id' => $selectionId ?: null,
             'selection_label' => isset($entry[Entry::PRODUCT_NAME]) ? (string)$entry[Entry::PRODUCT_NAME] : null,
             'custom_option_id' => $customOptionId ?: null,
             'title' => isset($entry[Entry::CUSTOM_OPTION_TITLE]) ? (string)$entry[Entry::CUSTOM_OPTION_TITLE] : null,

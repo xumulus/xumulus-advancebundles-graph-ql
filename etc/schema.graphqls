@@ -18,7 +18,7 @@ type BundleItemOption {
 
 type XabBundleItemCustomOption @doc(description: "A text custom option of a bundle item, as it applies to one bundle selection.") {
     uid: ID! @doc(description: "The ID to send as `EnteredOptionInput.uid` of `addProductsToCart`. It identifies the bundle option, the bundle selection and the custom option.")
-    option_id: Int! @doc(description: "The ID of the child product's custom option.")
+    option_id: Int! @doc(description: "The ID of the child product's custom option, as in core's custom option types. `XabBundleItemCustomization` calls it `custom_option_id`.")
     title: String @doc(description: "The display name of the custom option.")
     type: String @doc(description: "The input type: `field` (one line) or `area` (several lines).")
     required: Boolean! @doc(description: "Whether the text must be entered when this item is chosen, with the bundle selection's setting applied.")
@@ -33,16 +33,16 @@ type BundleCartItem {
 }
 
 type BundleOrderItem {
-    xab_customizations: [XabBundleItemCustomization!] @doc(description: "Xumulus Advanced Bundles: the custom option text entered for the bundle's items, such as engravings. For items added with 1.3.x the texts are read back from the stored request; their custom option `title` and `type` are then the current ones, or null when the custom option no longer exists.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\Customizations")
+    xab_customizations: [XabBundleItemCustomization!]! @doc(description: "Xumulus Advanced Bundles: the custom option text entered for the bundle's items, such as engravings. For items added with 1.3.x the texts are read back from the stored request; their custom option `title` and `type` are then the current ones, or null when the custom option no longer exists.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\Customizations")
 }
 
 type XabBundleItemCustomization @doc(description: "Custom option text entered for one item of a bundle in the cart or an order.") {
     uid: ID! @doc(description: "The same ID as `XabBundleItemCustomOption.uid`.")
-    option_id: Int @doc(description: "The ID of the bundle option.")
+    bundle_option_id: Int @doc(description: "The ID of the bundle option (`BundleItem.option_id`).")
     option_label: String @doc(description: "The title of the bundle option, as it was when the item was added.")
-    selection_id: Int @doc(description: "The ID of the bundle selection.")
+    bundle_selection_id: Int @doc(description: "The ID of the bundle selection (`BundleItemOption.id`).")
     selection_label: String @doc(description: "The name of the chosen item, as it was when the item was added.")
-    custom_option_id: Int @doc(description: "The ID of the child product's custom option.")
+    custom_option_id: Int @doc(description: "The ID of the child product's custom option (`XabBundleItemCustomOption.option_id`).")
     title: String @doc(description: "The title of the custom option, as it was when the item was added (the current title for items added with 1.3.x).")
     type: String @doc(description: "The input type: `field` or `area`. Null when unknown.")
     value: String! @doc(description: "The text the shopper entered.")

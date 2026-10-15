@@ -31,9 +31,9 @@ class CustomizationsTest extends TestCase
 
     private const EXPECTED = [
         'uid' => 'eGFiLWN1c3RvbS81LzkvMQ==',
-        'option_id' => 5,
+        'bundle_option_id' => 5,
         'option_label' => 'Select Option',
-        'selection_id' => 9,
+        'bundle_selection_id' => 9,
         'selection_label' => 'AB Child Alpha',
         'custom_option_id' => 1,
         'title' => 'Engraving text',
@@ -108,7 +108,7 @@ class CustomizationsTest extends TestCase
 
         $this->assertSame('Hi', $result[0]['value']);
         $this->assertNull($result[0]['option_label']);
-        $this->assertNull($result[0]['option_id']);
+        $this->assertNull($result[0]['bundle_option_id']);
     }
 
     public function testNoModel(): void

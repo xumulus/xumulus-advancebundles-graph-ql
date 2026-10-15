@@ -22,7 +22,7 @@ It is a separate package so that stores without Magento's GraphQL modules can in
 | Adobe Commerce / Magento Open Source | 2.4.7, 2.4.8, 2.4.9 |
 | PHP | 8.1, 8.2, 8.3, 8.4, 8.5 |
 | Xumulus Advanced Bundles | 2.0.0 or later |
-| Magento modules | `Magento_BundleGraphQl`, `Magento_QuoteGraphQl` (part of every standard install) |
+| Magento modules | `Magento_BundleGraphQl`, `Magento_QuoteGraphQl`, `Magento_WishlistGraphQl` (part of every standard install) |
 
 ## Installation
 
@@ -155,6 +155,16 @@ How the values are handled:
   a separate line.
 
 The legacy `addBundleProductsToCart` mutation is not extended; use `addProductsToCart`.
+
+### Moving wishlist items to the cart
+
+`addWishlistItemsToCart` carries the texts saved on a wishlist bundle over to the cart, as `xab-custom` entered
+options, so they are validated and stored like any other. Texts saved by 1.3.x (in `bundle_option[custom_option]`)
+are read too. Empty texts, and texts for items that are not chosen, are left out.
+
+Core's `addWishlistItemsToCart` passes on only options with a single chosen item (select and radio options); it
+does not handle checkbox or multi-select options of a wishlist bundle, so their texts cannot be carried either. A
+required text that was never saved on the wishlist item fails the move with a user error, as on the storefront.
 
 ## Cart and order output
 

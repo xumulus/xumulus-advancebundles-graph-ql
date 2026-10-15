@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Xumulus\AdvanceBundlesGraphQl\Model\Resolver;
 
 use Magento\Framework\GraphQl\Config\Element\Field;
+use Magento\Framework\GraphQl\Query\Resolver\ValueFactory;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Quote\Model\Quote\Item\AbstractItem;
@@ -15,6 +16,7 @@ use Magento\Sales\Api\Data\OrderItemInterface;
 use Xumulus\AdvanceBundles\Model\CustomOption\Entry;
 use Xumulus\AdvanceBundles\Model\CustomOption\QuoteApplier;
 use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
+use Xumulus\AdvanceBundlesGraphQl\Model\LegacyCustomizations;
 
 /**
  * BundleCartItem.xab_customizations and BundleOrderItem.xab_customizations.
@@ -22,6 +24,9 @@ use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
  * Reads the structured entries the main module stores when a bundle is added to the cart: the xab_custom_options
  * quote item option, copied to the order item's product options of the same name. Stored entries are shown even
  * when the extension has since been disabled, since they are part of the line.
+ *
+ * Items added before that option existed (1.3.x carts and orders) are read back from their buy request instead,
+ * see LegacyCustomizations; those are loaded together for the whole response through a deferred value.
  */
 class Customizations implements ResolverInterface
 {
@@ -36,13 +41,31 @@ class Customizations implements ResolverInterface
     private CustomOptionUid $uid;
 
     /**
+     * @var LegacyCustomizations
+     */
+    private LegacyCustomizations $legacy;
+
+    /**
+     * @var ValueFactory
+     */
+    private ValueFactory $valueFactory;
+
+    /**
      * @param QuoteApplier $quoteApplier
      * @param CustomOptionUid $uid
+     * @param LegacyCustomizations $legacy
+     * @param ValueFactory $valueFactory
      */
-    public function __construct(QuoteApplier $quoteApplier, CustomOptionUid $uid)
-    {
+    public function __construct(
+        QuoteApplier $quoteApplier,
+        CustomOptionUid $uid,
+        LegacyCustomizations $legacy,
+        ValueFactory $valueFactory
+    ) {
         $this->quoteApplier = $quoteApplier;
         $this->uid = $uid;
+        $this->legacy = $legacy;
+        $this->valueFactory = $valueFactory;
     }
 
     /**
@@ -60,10 +83,21 @@ class Customizations implements ResolverInterface
                 ? array_filter($options[QuoteApplier::OPTION_CODE], 'is_array')
                 : [];
         } else {
-            $entries = [];
+            return [];
+        }
+        if ($entries) {
+            return array_map([$this, 'format'], array_values($entries));
         }
 
-        return array_map([$this, 'format'], array_values($entries));
+        $request = $this->legacy->read($model);
+        if ($request === null) {
+            return [];
+        }
+        $this->legacy->register($request);
+
+        return $this->valueFactory->create(
+            fn () => array_map([$this, 'format'], $this->legacy->getEntries($request))
+        );
     }
 
     /**

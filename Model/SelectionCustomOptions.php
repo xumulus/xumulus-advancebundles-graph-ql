@@ -112,6 +112,19 @@ class SelectionCustomOptions implements ResetAfterRequestInterface
     }
 
     /**
+     * Text custom options of products, without any selection's setting applied.
+     *
+     * @param int[] $productIds
+     * @param int $storeId
+     * @return array<int, list<array<string, mixed>>> by product id, in sort order; each option has option_id,
+     *     title, type, is_require, max_characters, price, price_type and sort_order
+     */
+    public function getProductOptions(array $productIds, int $storeId): array
+    {
+        return $this->loadProductOptions($productIds, $storeId);
+    }
+
+    /**
      * @inheritDoc
      */
     public function _resetState(): void

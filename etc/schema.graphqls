@@ -29,11 +29,11 @@ type XabBundleItemCustomOption @doc(description: "A text custom option of a bund
 }
 
 type BundleCartItem {
-    xab_customizations: [XabBundleItemCustomization!]! @doc(description: "Xumulus Advanced Bundles: the custom option text entered for the bundle's items, such as engravings.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\Customizations")
+    xab_customizations: [XabBundleItemCustomization!]! @doc(description: "Xumulus Advanced Bundles: the custom option text entered for the bundle's items, such as engravings. For items added with 1.3.x the texts are read back from the stored request; their custom option `title` and `type` are then the current ones, or null when the custom option no longer exists.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\Customizations")
 }
 
 type BundleOrderItem {
-    xab_customizations: [XabBundleItemCustomization!] @doc(description: "Xumulus Advanced Bundles: the custom option text entered for the bundle's items, such as engravings.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\Customizations")
+    xab_customizations: [XabBundleItemCustomization!] @doc(description: "Xumulus Advanced Bundles: the custom option text entered for the bundle's items, such as engravings. For items added with 1.3.x the texts are read back from the stored request; their custom option `title` and `type` are then the current ones, or null when the custom option no longer exists.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\Customizations")
 }
 
 type XabBundleItemCustomization @doc(description: "Custom option text entered for one item of a bundle in the cart or an order.") {
@@ -43,7 +43,7 @@ type XabBundleItemCustomization @doc(description: "Custom option text entered fo
     selection_id: Int @doc(description: "The ID of the bundle selection.")
     selection_label: String @doc(description: "The name of the chosen item, as it was when the item was added.")
     custom_option_id: Int @doc(description: "The ID of the child product's custom option.")
-    title: String @doc(description: "The title of the custom option, as it was when the item was added.")
-    type: String @doc(description: "The input type: `field` or `area`.")
+    title: String @doc(description: "The title of the custom option, as it was when the item was added (the current title for items added with 1.3.x).")
+    type: String @doc(description: "The input type: `field` or `area`. Null when unknown.")
     value: String! @doc(description: "The text the shopper entered.")
 }

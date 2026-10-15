@@ -11,6 +11,10 @@
 #   XAB_DB           Command that runs SQL read from stdin and prints tab-separated rows without headers, to also
 #                    compare the product fields with the database, e.g.
 #                    XAB_DB='docker exec -i 249-db-1 mariadb -umagento -pmagento magento -N -B'
+#   XAB_LEGACY_ORDER "number email lastname" of a guest order placed with 1.3.x (no xab_custom_options), e.g.
+#                    '000000003 qa-order@example.test Tester'; its xab_customizations must list the texts.
+#   XAB_LEGACY_CART  Masked id of a guest cart filled with 1.3.x. With XAB_DB, both are compared with the
+#                    additional_options lines stored on the items.
 #
 # Fixtures (see the main module's Test/e2e): XAB-BUNDLE-DYN (2046) with options 5 select, 6 radio (CMS block
 # xab-option-note), 7 checkbox, 8 multi (hidden); child XAB-A (2041) has the text custom option 1 "Engraving
@@ -220,6 +224,41 @@ else
         '.data.addProductsToCart.user_errors[0].message == "Wrong format of the entered option data"'
     R=$(add XAB-A '[]' "[$(entered xab-custom/5/9/1 x)]")
     check "xab uid on a simple product: rejected" "$R" '.data.addProductsToCart.user_errors | length == 1'
+fi
+
+# --- Carts and orders created with 1.3.x -------------------------------------------------------------------------
+# Regression: they have no xab_custom_options, so the texts are read back from the stored buy request.
+CUSTOMIZATION_VALUES='[.xab_customizations[].value]'
+ADDITIONAL_VALUES='[(.additional_options // [])[] | select(.value != "Customizations") | .value]'
+
+if [ -n "${XAB_LEGACY_ORDER:-}" ] && [ "$EXPECT_DISABLED" != 1 ]; then
+    read -r L_NUMBER L_EMAIL L_LASTNAME <<<"$XAB_LEGACY_ORDER"
+    R=$(gql 'query($n: String!, $e: String!, $l: String!) {
+      guestOrder(input: {number: $n, email: $e, lastname: $l}) {
+        items { ... on BundleOrderItem { xab_customizations { option_label selection_label title value } } }
+      }
+    }' "$(jq -n --arg n "$L_NUMBER" --arg e "$L_EMAIL" --arg l "$L_LASTNAME" '{n: $n, e: $e, l: $l}')")
+    check "1.3.x order $L_NUMBER: xab_customizations lists the texts with labels" "$R" \
+        '[.data.guestOrder.items[] | select(.xab_customizations != null) | .xab_customizations[]] as $c
+         | ($c | length) > 0 and ($c | all(.value != "" and .option_label != null and .selection_label != null))'
+    if [ -n "${XAB_DB:-}" ]; then
+        DB_OPTIONS=$(printf '%s\n' "SELECT i.product_options FROM sales_order_item i JOIN sales_order o ON o.entity_id = i.order_id WHERE o.increment_id = '$L_NUMBER' AND i.parent_item_id IS NULL AND i.product_type = 'bundle' ORDER BY i.item_id;" | $XAB_DB | jq -sc "[.[] | $ADDITIONAL_VALUES]")
+        check "1.3.x order $L_NUMBER: the texts match additional_options" "$R" \
+            "[.data.guestOrder.items[] | select(.xab_customizations != null) | $CUSTOMIZATION_VALUES] == $DB_OPTIONS"
+    fi
+fi
+
+if [ -n "${XAB_LEGACY_CART:-}" ] && [ "$EXPECT_DISABLED" != 1 ]; then
+    R=$(gql 'query($c: String!) {
+      cart(cart_id: $c) { items { uid ... on BundleCartItem { xab_customizations { option_label selection_label value } } } }
+    }' "$(jq -n --arg c "$XAB_LEGACY_CART" '{c: $c}')")
+    check "1.3.x cart: some bundle line lists texts" "$R" \
+        '[.data.cart.items[] | select(.xab_customizations != null) | .xab_customizations[]] | length > 0'
+    if [ -n "${XAB_DB:-}" ]; then
+        DB_OPTIONS=$(printf '%s\n' "SELECT CONCAT('{\"additional_options\":', COALESCE((SELECT o.value FROM quote_item_option o WHERE o.item_id = i.item_id AND o.code = 'additional_options'), '[]'), '}') FROM quote_item i JOIN quote_id_mask m ON m.quote_id = i.quote_id WHERE m.masked_id = '$XAB_LEGACY_CART' AND i.parent_item_id IS NULL AND i.product_type = 'bundle' ORDER BY i.item_id;" | $XAB_DB | jq -sc "[.[] | $ADDITIONAL_VALUES]")
+        check "1.3.x cart: the texts match additional_options, line by line" "$R" \
+            "[.data.cart.items[] | select(.xab_customizations != null) | $CUSTOMIZATION_VALUES] == $DB_OPTIONS"
+    fi
 fi
 
 echo

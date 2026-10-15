@@ -84,7 +84,10 @@ class CustomOptionDataProviderTest extends TestCase
 
     public function testMalformedDataIsIgnored(): void
     {
-        $this->assertSame([], $this->execute(['bundle_option' => ['9' => '29'], 'bundle_custom_option' => ['9' => 'x']]));
+        $this->assertSame(
+            [],
+            $this->execute(['bundle_option' => ['9' => '29'], 'bundle_custom_option' => ['9' => 'x']])
+        );
         $this->assertSame([], $this->execute([
             'bundle_option' => ['9' => '29'],
             'bundle_custom_option' => ['9' => ['29' => ['abc' => 'x', '2' => ['nested']]]],

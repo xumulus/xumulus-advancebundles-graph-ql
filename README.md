@@ -181,6 +181,12 @@ required text that was never saved on the wishlist item fails the move with a us
 Labels are stored when the item is added, so they show what the shopper saw. Stored values stay listed even if
 the extension is later disabled.
 
+Cart items and orders created with 1.3.x have no stored entries; their texts are read back from the stored request
+(`info_buyRequest`) instead, for items that show customization lines (`additional_options`). Only non-empty texts
+for the bundle's chosen items are listed. The option label and item name are the ones stored with the line; the
+custom option `title` and `type` are the current ones, or null if the custom option has since been deleted. These
+items are resolved together: one query for the bundle selections and one per store for the custom options.
+
 ---
 
 ## Notes
@@ -201,6 +207,9 @@ XAB_AUTOLOAD=/var/www/html/vendor/autoload.php /var/www/html/vendor/bin/phpunit 
 Test/Api/run-graphql-tests.sh
 XAB_DB='docker exec -i 249-db-1 mariadb -umagento -pmagento magento -N -B' Test/Api/run-graphql-tests.sh
 XAB_EXPECT_DISABLED=1 Test/Api/run-graphql-tests.sh   # with the extension disabled
+# Also check a guest order and a guest cart created with 1.3.x (no stored entries):
+XAB_LEGACY_ORDER='000000003 qa-order@example.test Tester' XAB_LEGACY_CART='<masked cart id>' \
+    XAB_DB='docker exec -i 249-db-1 mariadb -umagento -pmagento magento -N -B' Test/Api/run-graphql-tests.sh
 
 # Count the SQL issued for the xab fields (should stay at 1 per source), from the Magento root:
 php <path>/dev/count-graphql-queries.php 'XAB-BUNDLE-DYN,XAB-BUNDLE-FIX,24-WG080'

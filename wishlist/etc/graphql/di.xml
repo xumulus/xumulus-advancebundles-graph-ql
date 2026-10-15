@@ -6,6 +6,14 @@
  */
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- addProductsToWishlist, updateProductsInWishlist: xab-custom entered_options become bundle_custom_option -->
+    <type name="Magento\Wishlist\Model\Wishlist\BuyRequest\BuyRequestBuilder">
+        <arguments>
+            <argument name="providers" xsi:type="array">
+                <item name="xab_bundle_custom_option" xsi:type="object">Xumulus\AdvanceBundlesGraphQlWishlist\Model\BuyRequest\CustomOptionDataProvider</item>
+            </argument>
+        </arguments>
+    </type>
     <!-- addWishlistItemsToCart: the texts saved on a wishlist bundle become xab-custom entered_options -->
     <type name="Magento\WishlistGraphQl\Model\CartItems\CartItemsRequestBuilder">
         <arguments>

@@ -10,8 +10,12 @@ headless storefronts such as PWA Studio, Hyvä Checkout or a custom frontend.
 - **Add to cart**: `addProductsToCart` accepts the text the shopper entered. The main module validates it exactly as
   it does on the storefront: required fields, maximum length, and that the item is chosen.
 - **Cart and orders**: bundle cart items and order items list the text entered.
+- **Wishlists** (optional, separate package `xumulus/advancebundles-graph-ql-wishlist`): texts are saved with
+  `addProductsToWishlist` and carried over by `addWishlistItemsToCart`. See [Wishlists](#wishlists).
 
 It is a separate package so that stores without Magento's GraphQL modules can install the main module on its own.
+The wishlist support is a package of its own for the same reason: this one does not depend on Magento_Wishlist or
+Magento_WishlistGraphQl, so stores that disable or remove them can still install it.
 
 ---
 
@@ -22,7 +26,7 @@ It is a separate package so that stores without Magento's GraphQL modules can in
 | Adobe Commerce / Magento Open Source | 2.4.7, 2.4.8, 2.4.9 |
 | PHP | 8.1, 8.2, 8.3, 8.4, 8.5 |
 | Xumulus Advanced Bundles | 2.0.0 or later |
-| Magento modules | `Magento_BundleGraphQl`, `Magento_QuoteGraphQl`, `Magento_WishlistGraphQl` (part of every standard install) |
+| Magento modules | `Magento_BundleGraphQl`, `Magento_QuoteGraphQl` (part of every standard install) |
 
 ## Installation
 
@@ -131,10 +135,11 @@ How the values are handled:
 - They are checked by the main module, as on the storefront. A missing required text, or a text that is too long,
   is returned in `user_errors` and the bundle is not added. The text is stored as entered, trimmed, so numeric text
   such as `"23"` stays text.
-- **Required texts are enforced for every bundle added through `addProductsToCart`**, even when the request sends
-  no `xab-custom` options. A client that does not know about this module therefore cannot add a bundle whose chosen
-  item requires an engraving. That matches the storefront. To enforce required texts only when a client sends at
-  least one value, set the argument in a `di.xml` of your own:
+- **Required texts are enforced for every bundle added through `addProductsToCart` or the legacy
+  `addBundleProductsToCart`**, even when the request sends no `xab-custom` options. A client that does not know
+  about this module therefore cannot add a bundle whose chosen item requires an engraving. That matches the
+  storefront. To enforce required texts only when a client sends at least one value (for both mutations), set the
+  argument in a `di.xml` of your own:
 
   ```xml
   <type name="Xumulus\AdvanceBundlesGraphQl\Model\Cart\BuyRequest\CustomOptionDataProvider">
@@ -146,7 +151,8 @@ How the values are handled:
 
 - A value that does not belong to the bundle is refused with a user error. It is not silently dropped. This
   covers a uid for an item not chosen in the same cart item, a uid from another product, a custom option the item
-  does not have, and a malformed uid. This strict check applies only to values sent as `entered_options`.
+  does not have, a malformed uid, the same uid sent twice in one cart item, and `xab-custom` values for a product
+  that is not a bundle. This strict check applies only to values sent as `entered_options`.
   Buy requests that reach the cart another way, such as `reorderItems` re-adding an order placed with 1.3.x (whose
   storefront form posted an input for every item, chosen or not), get the main module's usual handling: values
   for items that are not chosen are ignored.
@@ -154,17 +160,23 @@ How the values are handled:
 - The same bundle with the same texts adds to the existing cart line's quantity. With different texts it becomes
   a separate line.
 
-The legacy `addBundleProductsToCart` mutation is not extended; use `addProductsToCart`.
+The legacy `addBundleProductsToCart` mutation has no input for the texts; use `addProductsToCart` to send them.
+It does enforce required texts as described above, so a bundle whose chosen item requires one cannot be added with
+it. As with any problem in that mutation, the message comes back in the response's `errors`, not as a user error.
 
-### Moving wishlist items to the cart
+### Wishlists
 
-`addWishlistItemsToCart` carries the texts saved on a wishlist bundle over to the cart, as `xab-custom` entered
-options, so they are validated and stored like any other. Texts saved by 1.3.x (in `bundle_option[custom_option]`)
-are read too. Empty texts, and texts for items that are not chosen, are left out.
+Install the wishlist bridge as well when your storefront uses Magento's wishlist mutations:
 
-Core's `addWishlistItemsToCart` passes on only options with a single chosen item (select and radio options); it
-does not handle checkbox or multi-select options of a wishlist bundle, so their texts cannot be carried either. A
-required text that was never saved on the wishlist item fails the move with a user error, as on the storefront.
+```bash
+composer require xumulus/advancebundles-graph-ql-wishlist
+bin/magento module:enable Xumulus_AdvanceBundlesGraphQlWishlist
+```
+
+It saves the `xab-custom` entered options of `addProductsToWishlist` and `updateProductsInWishlist` with the
+wishlist item and carries them over in `addWishlistItemsToCart` (see its README in `wishlist/`). Without it,
+Magento drops those entered options when it saves a wishlist item, and `addWishlistItemsToCart` cannot move a
+bundle whose chosen item requires a text, because required texts are enforced as described above.
 
 ## Cart and order output
 
@@ -173,12 +185,13 @@ required text that was never saved on the wishlist item fails the move with a us
 | Field | Value |
 |---|---|
 | `uid` | Same as `XabBundleItemCustomOption.uid` |
-| `option_id`, `option_label` | The bundle option |
-| `selection_id`, `selection_label` | The chosen item |
-| `custom_option_id`, `title`, `type` | The custom option |
+| `bundle_option_id`, `option_label` | The bundle option (`BundleItem.option_id`) |
+| `bundle_selection_id`, `selection_label` | The chosen item (`BundleItemOption.id`) |
+| `custom_option_id`, `title`, `type` | The custom option (`XabBundleItemCustomOption.option_id`) |
 | `value` | The text entered |
 
-Labels are stored when the item is added, so they show what the shopper saw. Stored values stay listed even if
+The list is never null; it is empty for a bundle without texts. Labels are stored when the item is added, so they
+show what the shopper saw. Stored values stay listed even if
 the extension is later disabled.
 
 Cart items and orders created with 1.3.x have no stored entries; their texts are read back from the stored request
@@ -200,13 +213,15 @@ items are resolved together: one query for the bundle selections and one per sto
 ## Development
 
 ```bash
-# Unit tests (PHPUnit 10.5 to 12), from a Magento install's vendor/:
+# Unit tests of both packages (PHPUnit 10.5 to 12), from a Magento install's vendor/:
 XAB_AUTOLOAD=/var/www/html/vendor/autoload.php /var/www/html/vendor/bin/phpunit -c phpunit.xml.dist
 
 # GraphQL API tests against a running store with the QA fixtures (bash, curl, jq):
 Test/Api/run-graphql-tests.sh
 XAB_DB='docker exec -i 249-db-1 mariadb -umagento -pmagento magento -N -B' Test/Api/run-graphql-tests.sh
 XAB_EXPECT_DISABLED=1 Test/Api/run-graphql-tests.sh   # with the extension disabled
+# Wishlist bridge too (a customer whose wishlist the tests may fill):
+XAB_CUSTOMER='someone@example.com Password123!' Test/Api/run-graphql-tests.sh
 # Also check a guest order and a guest cart created with 1.3.x (no stored entries):
 XAB_LEGACY_ORDER='000000003 qa-order@example.test Tester' XAB_LEGACY_CART='<masked cart id>' \
     XAB_DB='docker exec -i 249-db-1 mariadb -umagento -pmagento magento -N -B' Test/Api/run-graphql-tests.sh
@@ -216,7 +231,7 @@ php <path>/dev/count-graphql-queries.php 'XAB-BUNDLE-DYN,XAB-BUNDLE-FIX,24-WG080
 
 # Coding standard (0 errors at severity 10):
 vendor/bin/phpcs --standard=Magento2 --extensions=php,phtml,graphqls --error-severity=10 \
-    --ignore-annotations --ignore='*/dev/*' <path>
+    --ignore-annotations --ignore='*/dev/*,*/.phpunit.cache/*' <path>
 ```
 
 ## License

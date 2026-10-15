@@ -57,7 +57,10 @@ class CustomOptionDataProviderTest extends TestCase
         );
 
         $this->assertSame(
-            ['bundle_custom_option' => [5 => [9 => [1 => '23']], 7 => [19 => [1 => 'Happy Birthday']]]],
+            [
+                'bundle_custom_option' => [5 => [9 => [1 => '23']], 7 => [19 => [1 => 'Happy Birthday']]],
+                '_xab_graphql_custom_option' => true,
+            ],
             $this->createProvider()->execute($item)
         );
     }
@@ -76,7 +79,7 @@ class CustomOptionDataProviderTest extends TestCase
         $item = $this->createCartItem([], [['bundle/7/19', '2'], ['xab-custom/7/19/1', 'Hi']]);
 
         $this->assertSame(
-            ['bundle_custom_option' => [7 => [19 => [1 => 'Hi']]]],
+            ['bundle_custom_option' => [7 => [19 => [1 => 'Hi']]], '_xab_graphql_custom_option' => true],
             $this->createProvider()->execute($item)
         );
     }
@@ -86,6 +89,17 @@ class CustomOptionDataProviderTest extends TestCase
         $item = $this->createCartItem(['bundle/9/29/1'], [['custom-option/3', 'core custom option']]);
 
         $this->assertSame(['bundle_custom_option' => []], $this->createProvider()->execute($item));
+    }
+
+    public function testOnlyBuyRequestsWithValuesAreMarkedAsComingFromEnteredOptions(): void
+    {
+        $withValues = $this->createProvider()->execute(
+            $this->createCartItem(['bundle/5/9/1'], [['xab-custom/5/9/1', 'A']])
+        );
+        $withoutValues = $this->createProvider()->execute($this->createCartItem(['bundle/5/9/1'], []));
+
+        $this->assertTrue($withValues[CustomOptionDataProvider::VALUES_FLAG]);
+        $this->assertArrayNotHasKey(CustomOptionDataProvider::VALUES_FLAG, $withoutValues);
     }
 
     public function testBundleItemWithoutValuesAddsNothingWhenRequiredOptionsAreNotEnforced(): void
@@ -100,7 +114,7 @@ class CustomOptionDataProviderTest extends TestCase
         $item = $this->createCartItem(['bundle/5/9/1'], [['xab-custom/5/9/1', 'A']]);
 
         $this->assertSame(
-            ['bundle_custom_option' => [5 => [9 => [1 => 'A']]]],
+            ['bundle_custom_option' => [5 => [9 => [1 => 'A']]], '_xab_graphql_custom_option' => true],
             $this->createProvider(true, false)->execute($item)
         );
     }

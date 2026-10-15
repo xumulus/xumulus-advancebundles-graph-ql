@@ -24,7 +24,9 @@ use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
  *
  * A value is accepted only for a selection chosen in the same cart item, through core's "bundle/..." selected or
  * entered options; that the custom option belongs to the selection's product is checked once the product is known
- * (Plugin\RejectUnknownCustomOptions).
+ * (Plugin\RejectUnknownCustomOptions). The buy request is marked (VALUES_FLAG) so that check applies to these
+ * values only: buy requests that reach the cart some other way in the graphql area, such as reorderItems
+ * re-adding an order saved by 1.3.x, keep the main module's lenient handling.
  *
  * For a bundle item the key is always set, even with no values, so the main module enforces required custom
  * options as the storefront does: the API offers a way to send them. Set the enforceRequired argument to false
@@ -38,6 +40,11 @@ class CustomOptionDataProvider implements BuyRequestDataProviderInterface
      * First part of core's bundle option uids.
      */
     private const BUNDLE_TYPE = 'bundle';
+
+    /**
+     * Buy request key marking values that came from entered_options. Removed before the buy request is stored.
+     */
+    public const VALUES_FLAG = '_xab_graphql_custom_option';
 
     /**
      * @var CustomOptionUid
@@ -93,11 +100,11 @@ class CustomOptionDataProvider implements BuyRequestDataProviderInterface
             $values[$ids['option_id']][$ids['selection_id']][$ids['custom_option_id']] = $enteredOption->getValue();
         }
 
-        if (!$values && (!$chosen || !$this->enforceRequired)) {
-            return [];
+        if ($values) {
+            return [BuyRequestData::KEY => $values, self::VALUES_FLAG => true];
         }
 
-        return [BuyRequestData::KEY => $values];
+        return $chosen && $this->enforceRequired ? [BuyRequestData::KEY => []] : [];
     }
 
     /**

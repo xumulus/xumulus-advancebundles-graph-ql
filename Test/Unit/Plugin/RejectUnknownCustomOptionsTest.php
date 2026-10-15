@@ -9,6 +9,7 @@ use Magento\Catalog\Model\Product;
 use Magento\Framework\DataObject;
 use PHPUnit\Framework\TestCase;
 use Xumulus\AdvanceBundles\Model\Config;
+use Xumulus\AdvanceBundlesGraphQl\Model\Cart\BuyRequest\CustomOptionDataProvider;
 use Xumulus\AdvanceBundlesGraphQl\Plugin\RejectUnknownCustomOptions;
 
 class RejectUnknownCustomOptionsTest extends TestCase
@@ -71,26 +72,49 @@ class RejectUnknownCustomOptionsTest extends TestCase
     }
 
     /**
-     * Run the plugin on core's result for the bundle and the two chosen selections.
+     * Plugin with the extension enabled or not.
+     *
+     * @param bool $enabled
+     * @param ProductCustomOptionRepositoryInterface|null $repository
+     * @return RejectUnknownCustomOptions
+     */
+    private function createPlugin(bool $enabled = true, $repository = null): RejectUnknownCustomOptions
+    {
+        $config = $this->createStub(Config::class);
+        $config->method('isEnabled')->willReturn($enabled);
+
+        return new RejectUnknownCustomOptions(
+            $config,
+            $repository ?? $this->createStub(ProductCustomOptionRepositoryInterface::class)
+        );
+    }
+
+    /**
+     * Run the plugin around core's result for the bundle and the two chosen selections.
      *
      * @param array<mixed> $buyRequest
      * @param bool $enabled
      * @param ProductCustomOptionRepositoryInterface|null $repository
+     * @param bool $fromEnteredOptions whether the buy request carries CustomOptionDataProvider's mark
      * @return array<mixed>|string
      */
-    private function invoke(array $buyRequest, bool $enabled = true, $repository = null)
-    {
-        $config = $this->createStub(Config::class);
-        $config->method('isEnabled')->willReturn($enabled);
-        $plugin = new RejectUnknownCustomOptions(
-            $config,
-            $repository ?? $this->createStub(ProductCustomOptionRepositoryInterface::class)
-        );
+    private function invoke(
+        array $buyRequest,
+        bool $enabled = true,
+        $repository = null,
+        bool $fromEnteredOptions = true
+    ) {
+        $plugin = $this->createPlugin($enabled, $repository);
+        if ($fromEnteredOptions) {
+            $buyRequest[CustomOptionDataProvider::VALUES_FLAG] = true;
+        }
+        $request = new DataObject($buyRequest);
+        $plugin->beforePrepareForCartAdvanced($this->type, $request, $this->bundle);
 
         return $plugin->afterPrepareForCartAdvanced(
             $this->type,
             [$this->bundle, $this->alpha, $this->bravo],
-            new DataObject($buyRequest),
+            $request,
             $this->bundle
         );
     }
@@ -172,21 +196,73 @@ class RejectUnknownCustomOptionsTest extends TestCase
 
     public function testCoreErrorPassesThrough(): void
     {
-        $config = $this->createStub(Config::class);
-        $config->method('isEnabled')->willReturn(true);
-        $plugin = new RejectUnknownCustomOptions(
-            $config,
-            $this->createStub(ProductCustomOptionRepositoryInterface::class)
-        );
+        $plugin = $this->createPlugin();
+        $request = new DataObject([
+            'bundle_custom_option' => [9 => [29 => [1 => 'x']]],
+            CustomOptionDataProvider::VALUES_FLAG => true,
+        ]);
+        $plugin->beforePrepareForCartAdvanced($this->type, $request, $this->bundle);
 
         $this->assertSame(
             'Please specify product option(s).',
             $plugin->afterPrepareForCartAdvanced(
                 $this->type,
                 'Please specify product option(s).',
-                new DataObject(['bundle_custom_option' => [9 => [29 => [1 => 'x']]]]),
+                $request,
                 $this->bundle
             )
         );
+    }
+
+    /**
+     * Regression: reorderItems (and any other re-prepare in the graphql area) passes the stored info_buyRequest.
+     * A 1.3.x storefront order carries an input for every selection, chosen or not, mostly empty.
+     */
+    public function testBuyRequestNotFromEnteredOptionsIsLeftToTheMainModule(): void
+    {
+        $legacy = [
+            'bundle_option' => [5 => '9', 6 => '15'],
+            'bundle_custom_option' => [5 => [10 => [1 => '']], 6 => [14 => [1 => '']], 9 => [29 => [999 => 'x']]],
+        ];
+
+        $this->assertSame(
+            [$this->bundle, $this->alpha, $this->bravo],
+            $this->invoke($legacy, true, null, false)
+        );
+    }
+
+    public function testLegacyLocationNotFromEnteredOptionsIsLeftToTheMainModule(): void
+    {
+        $legacy = ['bundle_option' => [5 => '9', 'custom_option' => [6 => [14 => [1 => '']]]]];
+
+        $this->assertIsArray($this->invoke($legacy, true, null, false));
+    }
+
+    public function testTheMarkIsRemovedBeforeCoreStoresTheBuyRequest(): void
+    {
+        $request = new DataObject([
+            'bundle_custom_option' => [5 => [9 => [1 => '23']]],
+            CustomOptionDataProvider::VALUES_FLAG => true,
+        ]);
+
+        $this->createPlugin()->beforePrepareForCartAdvanced($this->type, $request, $this->bundle);
+
+        $this->assertFalse($request->hasData(CustomOptionDataProvider::VALUES_FLAG));
+        $this->assertSame([5 => [9 => [1 => '23']]], $request->getData('bundle_custom_option'));
+    }
+
+    public function testTheMarkAppliesToOneCallOnly(): void
+    {
+        $plugin = $this->createPlugin();
+        $request = new DataObject([
+            'bundle_custom_option' => [9 => [29 => [1 => 'x']]],
+            CustomOptionDataProvider::VALUES_FLAG => true,
+        ]);
+        $plugin->beforePrepareForCartAdvanced($this->type, $request, $this->bundle);
+        $result = [$this->bundle, $this->alpha, $this->bravo];
+
+        $this->assertIsString($plugin->afterPrepareForCartAdvanced($this->type, $result, $request, $this->bundle));
+        $plugin->beforePrepareForCartAdvanced($this->type, $request, $this->bundle);
+        $this->assertSame($result, $plugin->afterPrepareForCartAdvanced($this->type, $result, $request, $this->bundle));
     }
 }

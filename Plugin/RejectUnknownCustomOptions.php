@@ -13,6 +13,7 @@ use Magento\Catalog\Model\Product;
 use Magento\Framework\DataObject;
 use Xumulus\AdvanceBundles\Model\Config;
 use Xumulus\AdvanceBundles\Model\CustomOption\BuyRequestData;
+use Xumulus\AdvanceBundlesGraphQl\Model\Cart\BuyRequest\CustomOptionDataProvider;
 use Xumulus\AdvanceBundlesGraphQl\Model\SelectionCustomOptions;
 
 /**
@@ -22,6 +23,11 @@ use Xumulus\AdvanceBundlesGraphQl\Model\SelectionCustomOptions;
  * else, which suits the storefront form: it posts an input for every selection, chosen or not. An API client
  * names each value explicitly, so a value that matches nothing (a uid copied from another product, or edited) is
  * an error the client should hear about instead of text that silently disappears.
+ *
+ * Only values sent as entered_options are checked: CustomOptionDataProvider marks those buy requests. Anything else
+ * that reaches the cart in the graphql area keeps the main module's lenient handling. In particular reorderItems
+ * re-adds the stored info_buyRequest, and an order placed with 1.3.x carries an input (often empty) for every
+ * selection of the storefront form, chosen or not.
  *
  * Registered for the graphql area only. The failure is returned as a string, which is how core's
  * prepareForCartAdvanced() reports a problem; addProductsToCart turns it into a user error.
@@ -39,6 +45,13 @@ class RejectUnknownCustomOptions
     private ProductCustomOptionRepositoryInterface $optionRepository;
 
     /**
+     * Buy requests whose custom option values came from entered_options.
+     *
+     * @var \WeakMap<DataObject, bool>
+     */
+    private \WeakMap $fromEnteredOptions;
+
+    /**
      * @param Config $config
      * @param ProductCustomOptionRepositoryInterface $optionRepository
      */
@@ -46,10 +59,37 @@ class RejectUnknownCustomOptions
     {
         $this->config = $config;
         $this->optionRepository = $optionRepository;
+        $this->fromEnteredOptions = new \WeakMap();
     }
 
     /**
-     * Check every posted value against the selections core resolved.
+     * Take the entered_options mark off the buy request, before core stores it as info_buyRequest.
+     *
+     * @param Type $subject
+     * @param DataObject $buyRequest
+     * @param Product|mixed $product core declares no type
+     * @param string|null $processMode
+     * @return null
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     */
+    public function beforePrepareForCartAdvanced(
+        Type $subject,
+        DataObject $buyRequest,
+        $product,
+        $processMode = null
+    ) {
+        if ($buyRequest->hasData(CustomOptionDataProvider::VALUES_FLAG)) {
+            if ($buyRequest->getData(CustomOptionDataProvider::VALUES_FLAG)) {
+                $this->fromEnteredOptions[$buyRequest] = true;
+            }
+            $buyRequest->unsetData(CustomOptionDataProvider::VALUES_FLAG);
+        }
+
+        return null;
+    }
+
+    /**
+     * Check every value sent as entered_options against the selections core resolved.
      *
      * @param Type $subject
      * @param array<mixed>|string $result
@@ -66,7 +106,9 @@ class RejectUnknownCustomOptions
         $product,
         $processMode = null
     ) {
-        if (!is_array($result) || !$product instanceof Product
+        $fromEnteredOptions = isset($this->fromEnteredOptions[$buyRequest]);
+        unset($this->fromEnteredOptions[$buyRequest]);
+        if (!$fromEnteredOptions || !is_array($result) || !$product instanceof Product
             || !$this->config->isEnabled((int)$product->getStoreId())
         ) {
             return $result;

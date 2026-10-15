@@ -146,7 +146,10 @@ How the values are handled:
 
 - A value that does not belong to the bundle is refused with a user error. It is not silently dropped. This
   covers a uid for an item not chosen in the same cart item, a uid from another product, a custom option the item
-  does not have, and a malformed uid.
+  does not have, and a malformed uid. This strict check applies only to values sent as `entered_options`.
+  Buy requests that reach the cart another way, such as `reorderItems` re-adding an order placed with 1.3.x (whose
+  storefront form posted an input for every item, chosen or not), get the main module's usual handling: values
+  for items that are not chosen are ignored.
 - While the extension is disabled, `xab-custom` entered options are ignored.
 - The same bundle with the same texts adds to the existing cart line's quantity. With different texts it becomes
   a separate line.

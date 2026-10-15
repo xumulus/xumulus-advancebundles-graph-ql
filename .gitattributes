@@ -2,6 +2,7 @@
 # `git archive` honours these, so the release zip is built straight from a tag.
 /.gitattributes    export-ignore
 /.gitignore        export-ignore
+/.github           export-ignore
 
 # Developer tooling (the unit suite's bootstrap and configuration)
 /dev               export-ignore

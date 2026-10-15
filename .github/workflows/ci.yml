@@ -1,0 +1,60 @@
+# CI for Xumulus_AdvanceBundlesGraphQl: phpcs (the Marketplace gate) and PHPUnit on PHP 8.1 (Magento 2.4.7) and 8.4
+# (Magento 2.4.9), on every push and pull request. Each job calls a script in dev/ci/, so it runs the same way
+# locally.
+#
+# The unit tests build on xumulus/xumulus-advanced-bundles, which are private: CI checks them out into dev/ci/deps/
+# with read-only deploy keys stored as repository secrets (XAB_MAIN_DEPLOY_KEY). XAB_DEPS_REF is the branch they
+# are checked out from.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  COMPOSER_ALLOW_SUPERUSER: 1
+  COMPOSER_CACHE_DIR: /root/.cache/composer
+  # Switch to master once 2.0.0 is merged there.
+  XAB_DEPS_REF: feat/2.0.0
+
+jobs:
+  php:
+    name: phpcs + PHPUnit (PHP ${{ matrix.php }}, Magento ${{ matrix.magento }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            magento: '2.4.7'
+            image: markoshust/magento-php:8.1-fpm-9
+          - php: '8.4'
+            magento: '2.4.9'
+            image: markoshust/magento-php:8.4-fpm-2
+    container:
+      image: ${{ matrix.image }}
+      options: --user 0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out xumulus/xumulus-advanced-bundles
+        uses: actions/checkout@v4
+        with:
+          repository: xumulus/xumulus-advanced-bundles
+          ref: ${{ env.XAB_DEPS_REF }}
+          ssh-key: ${{ secrets.XAB_MAIN_DEPLOY_KEY }}
+          path: dev/ci/deps/main
+      - uses: actions/cache@v4
+        with:
+          path: /root/.cache/composer
+          key: composer-${{ matrix.php }}-${{ hashFiles('dev/ci/composer.json', 'dev/ci/phpcs/composer.json') }}
+          restore-keys: composer-${{ matrix.php }}-
+      - run: dev/ci/run-phpcs.sh
+      - run: dev/ci/run-unit.sh

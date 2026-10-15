@@ -8,3 +8,10 @@
 # Test tooling output
 /.phpunit.cache/
 /.phpunit.result.cache
+
+# CI tooling installs and the private packages CI checks out (see dev/ci/install.sh)
+/dev/ci/vendor/
+/dev/ci/composer.lock
+/dev/ci/phpcs/vendor/
+/dev/ci/phpcs/composer.lock
+/dev/ci/deps/

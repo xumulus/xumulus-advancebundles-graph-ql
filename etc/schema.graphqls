@@ -1,0 +1,49 @@
+# Copyright © Xumulus. All rights reserved.
+# See LICENSE.txt for license details.
+#
+# Xumulus Advanced Bundles fields on the bundle product schema of Magento_BundleGraphQl.
+# Every xab_* field of BundleItem and BundleItemOption is null when the extension is disabled for the store.
+
+type BundleItem {
+    xab_visible: Boolean @doc(description: "Xumulus Advanced Bundles: whether the bundle option is shown on the storefront. A hidden option keeps its default selections; the shopper does not choose them. Null when the extension is disabled.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\BundleItemSettings")
+    xab_cms_block: String @doc(description: "Xumulus Advanced Bundles: the CMS block shown above the bundle option, as stored (a block identifier, or a numeric block ID). Null when none is set or the extension is disabled.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\BundleItemSettings")
+    xab_cms_block_html: String @doc(description: "Xumulus Advanced Bundles: the rendered content of `xab_cms_block` for the current store, with directives and widgets processed. Null when no active block is assigned to the store or the extension is disabled.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\BundleItemSettings")
+    xab_gallery_single: Boolean @doc(description: "Xumulus Advanced Bundles: for a gallery option, whether the shopper picks a single item (true) or several (false). Null when the extension is disabled.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\BundleItemSettings")
+}
+
+type BundleItemOption {
+    xab_custom_option_required: Boolean @doc(description: "Xumulus Advanced Bundles: whether the shopper must fill in this item's text custom options when choosing it: the bundle selection's own setting when it has one, otherwise whether any of the item's text custom options is required. False when the item has no text custom options. Null when the extension is disabled.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\BundleItemOptionCustomOptions")
+    xab_custom_options: [XabBundleItemCustomOption!] @doc(description: "Xumulus Advanced Bundles: the item's text custom options (field and area), such as an engraving, in sort order. Send the text the shopper enters as `entered_options` of `addProductsToCart`, with the option's `uid`. Null when the extension is disabled.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\BundleItemOptionCustomOptions")
+}
+
+type XabBundleItemCustomOption @doc(description: "A text custom option of a bundle item, as it applies to one bundle selection.") {
+    uid: ID! @doc(description: "The ID to send as `EnteredOptionInput.uid` of `addProductsToCart`. It identifies the bundle option, the bundle selection and the custom option.")
+    option_id: Int! @doc(description: "The ID of the child product's custom option.")
+    title: String @doc(description: "The display name of the custom option.")
+    type: String @doc(description: "The input type: `field` (one line) or `area` (several lines).")
+    required: Boolean! @doc(description: "Whether the text must be entered when this item is chosen, with the bundle selection's setting applied.")
+    max_characters: Int @doc(description: "The maximum number of characters, counting a line break as one. 0 when there is no limit.")
+    price: Float @doc(description: "The price of the custom option, as configured: an amount, or a percentage of the item price when `price_type` is PERCENT.")
+    price_type: PriceTypeEnum @doc(description: "FIXED or PERCENT.")
+    sort_order: Int @doc(description: "The position of the custom option among the item's custom options.")
+}
+
+type BundleCartItem {
+    xab_customizations: [XabBundleItemCustomization!]! @doc(description: "Xumulus Advanced Bundles: the custom option text entered for the bundle's items, such as engravings.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\Customizations")
+}
+
+type BundleOrderItem {
+    xab_customizations: [XabBundleItemCustomization!] @doc(description: "Xumulus Advanced Bundles: the custom option text entered for the bundle's items, such as engravings.") @resolver(class: "Xumulus\\AdvanceBundlesGraphQl\\Model\\Resolver\\Customizations")
+}
+
+type XabBundleItemCustomization @doc(description: "Custom option text entered for one item of a bundle in the cart or an order.") {
+    uid: ID! @doc(description: "The same ID as `XabBundleItemCustomOption.uid`.")
+    option_id: Int @doc(description: "The ID of the bundle option.")
+    option_label: String @doc(description: "The title of the bundle option, as it was when the item was added.")
+    selection_id: Int @doc(description: "The ID of the bundle selection.")
+    selection_label: String @doc(description: "The name of the chosen item, as it was when the item was added.")
+    custom_option_id: Int @doc(description: "The ID of the child product's custom option.")
+    title: String @doc(description: "The title of the custom option, as it was when the item was added.")
+    type: String @doc(description: "The input type: `field` or `area`.")
+    value: String! @doc(description: "The text the shopper entered.")
+}

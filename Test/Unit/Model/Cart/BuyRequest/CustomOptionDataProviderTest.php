@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 use Xumulus\AdvanceBundles\Model\Config;
 use Xumulus\AdvanceBundlesGraphQl\Model\Cart\BuyRequest\CustomOptionDataProvider;
 use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
+use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionValues;
 
 class CustomOptionDataProviderTest extends TestCase
 {
@@ -27,7 +28,7 @@ class CustomOptionDataProviderTest extends TestCase
         $config = $this->createStub(Config::class);
         $config->method('isEnabled')->willReturn($enabled);
 
-        return new CustomOptionDataProvider(new CustomOptionUid(), $config, $enforceRequired);
+        return new CustomOptionDataProvider(new CustomOptionValues(new CustomOptionUid()), $config, $enforceRequired);
     }
 
     /**
@@ -177,5 +178,18 @@ class CustomOptionDataProviderTest extends TestCase
         $item = $this->createCartItem(['bundle/x/9/1', 'bundle/5'], []);
 
         $this->assertSame([], $this->createProvider()->execute($item));
+    }
+
+    /**
+     * Regression: a repeated uid used to keep the last value silently.
+     */
+    public function testRejectsTheSameUidSentTwice(): void
+    {
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessage('is sent more than once');
+
+        $this->createProvider()->execute(
+            $this->createCartItem(['bundle/5/9/1'], [['xab-custom/5/9/1', 'First'], ['xab-custom/5/9/1', 'Second']])
+        );
     }
 }

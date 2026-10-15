@@ -12,7 +12,7 @@ use Magento\Quote\Model\Cart\BuyRequest\BuyRequestDataProviderInterface;
 use Magento\Quote\Model\Cart\Data\CartItem;
 use Xumulus\AdvanceBundles\Model\Config;
 use Xumulus\AdvanceBundles\Model\CustomOption\BuyRequestData;
-use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
+use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionValues;
 
 /**
  * Turns the bundle item custom options of an addProductsToCart item into the buy request the main module reads.
@@ -23,10 +23,10 @@ use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
  * them on the quote item; a validation message comes back as one of the mutation's user_errors.
  *
  * A value is accepted only for a selection chosen in the same cart item, through core's "bundle/..." selected or
- * entered options; that the custom option belongs to the selection's product is checked once the product is known
- * (Plugin\RejectUnknownCustomOptions). The buy request is marked (VALUES_FLAG) so that check applies to these
- * values only: buy requests that reach the cart some other way in the graphql area, such as reorderItems
- * re-adding an order saved by 1.3.x, keep the main module's lenient handling.
+ * entered options, and only once per uid; that the custom option belongs to the selection's product is checked
+ * once the product is known (Plugin\RejectUnknownCustomOptions). The buy request is marked (VALUES_FLAG) so that
+ * check applies to these values only: buy requests that reach the cart some other way in the graphql area, such as
+ * reorderItems re-adding an order saved by 1.3.x, keep the main module's lenient handling.
  *
  * For a bundle item the key is always set, even with no values, so the main module enforces required custom
  * options as the storefront does: the API offers a way to send them. Set the enforceRequired argument to false
@@ -37,19 +37,14 @@ use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
 class CustomOptionDataProvider implements BuyRequestDataProviderInterface
 {
     /**
-     * First part of core's bundle option uids.
-     */
-    private const BUNDLE_TYPE = 'bundle';
-
-    /**
      * Buy request key marking values that came from entered_options. Removed before the buy request is stored.
      */
     public const VALUES_FLAG = '_xab_graphql_custom_option';
 
     /**
-     * @var CustomOptionUid
+     * @var CustomOptionValues
      */
-    private CustomOptionUid $uid;
+    private CustomOptionValues $values;
 
     /**
      * @var Config
@@ -62,13 +57,13 @@ class CustomOptionDataProvider implements BuyRequestDataProviderInterface
     private bool $enforceRequired;
 
     /**
-     * @param CustomOptionUid $uid
+     * @param CustomOptionValues $values
      * @param Config $config
      * @param bool $enforceRequired
      */
-    public function __construct(CustomOptionUid $uid, Config $config, bool $enforceRequired = true)
+    public function __construct(CustomOptionValues $values, Config $config, bool $enforceRequired = true)
     {
-        $this->uid = $uid;
+        $this->values = $values;
         $this->config = $config;
         $this->enforceRequired = $enforceRequired;
     }
@@ -76,7 +71,8 @@ class CustomOptionDataProvider implements BuyRequestDataProviderInterface
     /**
      * @inheritDoc
      *
-     * @throws LocalizedException for a malformed uid of ours, or a value for a selection that is not chosen
+     * @throws LocalizedException for a malformed or repeated uid of ours, or a value for a selection that is not
+     *     chosen
      */
     public function execute(CartItem $cartItem): array
     {
@@ -84,58 +80,22 @@ class CustomOptionDataProvider implements BuyRequestDataProviderInterface
             return [];
         }
 
-        $chosen = $this->getChosenSelections($cartItem);
-        $values = [];
-        foreach ($cartItem->getEnteredOptions() ?? [] as $enteredOption) {
-            $uid = $enteredOption->getUid();
-            if (!$this->uid->isCustomOptionUid($uid)) {
-                continue;
-            }
-            $ids = $this->uid->decode($uid);
-            if (!isset($chosen[$ids['option_id']][$ids['selection_id']])) {
-                throw new LocalizedException(
-                    __('The entered option "%1" is for a bundle item that is not selected.', $uid)
-                );
-            }
-            $values[$ids['option_id']][$ids['selection_id']][$ids['custom_option_id']] = $enteredOption->getValue();
-        }
-
-        if ($values) {
-            return [BuyRequestData::KEY => $values, self::VALUES_FLAG => true];
-        }
-
-        return $chosen && $this->enforceRequired ? [BuyRequestData::KEY => []] : [];
-    }
-
-    /**
-     * Selections chosen through core's bundle option uids: "bundle/<option>/<selection>/<qty>" selected options and
-     * "bundle/<option>/<selection>" entered options (a typed quantity).
-     *
-     * @param CartItem $cartItem
-     * @return array<int, array<int, true>> [option id][selection id]
-     */
-    private function getChosenSelections(CartItem $cartItem): array
-    {
         $uids = [];
+        $entered = [];
         foreach ($cartItem->getSelectedOptions() ?? [] as $selectedOption) {
             $uids[] = $selectedOption->getId();
         }
         foreach ($cartItem->getEnteredOptions() ?? [] as $enteredOption) {
             $uids[] = $enteredOption->getUid();
+            $entered[] = [$enteredOption->getUid(), $enteredOption->getValue()];
         }
 
-        $chosen = [];
-        foreach ($uids as $uid) {
-            // phpcs:ignore Magento2.Functions.DiscouragedFunction
-            $parts = explode('/', (string)base64_decode($uid, true));
-            if (count($parts) < 3 || $parts[0] !== self::BUNDLE_TYPE
-                || !ctype_digit($parts[1]) || !ctype_digit($parts[2])
-            ) {
-                continue;
-            }
-            $chosen[(int)$parts[1]][(int)$parts[2]] = true;
+        $chosen = $this->values->getChosenSelections($uids);
+        $values = $this->values->collect($entered, $chosen);
+        if ($values) {
+            return [BuyRequestData::KEY => $values, self::VALUES_FLAG => true];
         }
 
-        return $chosen;
+        return $chosen && $this->enforceRequired ? [BuyRequestData::KEY => []] : [];
     }
 }

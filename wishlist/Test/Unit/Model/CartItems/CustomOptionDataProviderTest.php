@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 use Xumulus\AdvanceBundles\Model\Config;
 use Xumulus\AdvanceBundlesGraphQl\Model\Cart\BuyRequest\CustomOptionDataProvider as CartProvider;
 use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
+use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionValues;
 use Xumulus\AdvanceBundlesGraphQlWishlist\Model\CartItems\CustomOptionDataProvider;
 
 class CustomOptionDataProviderTest extends TestCase
@@ -120,7 +121,7 @@ class CustomOptionDataProviderTest extends TestCase
 
         $this->assertSame(
             ['bundle_custom_option' => [9 => [29 => [1 => '23']]], CartProvider::VALUES_FLAG => true],
-            (new CartProvider(new CustomOptionUid(), $config))->execute($cartItem)
+            (new CartProvider(new CustomOptionValues(new CustomOptionUid()), $config))->execute($cartItem)
         );
     }
 }

@@ -3,7 +3,9 @@
 /.gitattributes    export-ignore
 /.gitignore        export-ignore
 
-# Developer tooling and tests that need the repository (a Magento install, a running store)
+# Developer tooling (the unit suite's bootstrap and configuration)
 /dev               export-ignore
 /phpunit.xml.dist  export-ignore
-/Test              export-ignore
+
+# GraphQL API tests: they need a running store with the fixtures
+/Test/Api          export-ignore

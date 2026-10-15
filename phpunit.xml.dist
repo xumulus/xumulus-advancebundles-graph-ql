@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Unit suite for Xumulus_AdvanceBundlesGraphQl. Repository-only, not shipped.
+
+    Needs a Magento install's vendor/ (PHPUnit 9.6 through 12) and the main module, Xumulus_AdvanceBundles:
+        XAB_AUTOLOAD=/var/www/html/vendor/autoload.php /var/www/html/vendor/bin/phpunit -c phpunit.xml.dist
+    dev/phpunit-bootstrap.php explains how both are found.
+-->
+<phpunit bootstrap="dev/phpunit-bootstrap.php"
+         colors="true"
+         beStrictAboutOutputDuringTests="true"
+         failOnRisky="true"
+         failOnWarning="true">
+    <testsuites>
+        <testsuite name="unit">
+            <directory suffix="Test.php">Test/Unit</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

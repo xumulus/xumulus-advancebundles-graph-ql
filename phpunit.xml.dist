@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Unit suite for Xumulus_AdvanceBundlesGraphQl. Repository-only, not shipped.
+    Unit suite for Xumulus_AdvanceBundlesGraphQl and the wishlist bridge in wishlist/
+    (Xumulus_AdvanceBundlesGraphQlWishlist). Repository-only, not shipped.
 
     Needs a Magento install's vendor/ (PHPUnit 9.6 through 12) and the main module, Xumulus_AdvanceBundles:
         XAB_AUTOLOAD=/var/www/html/vendor/autoload.php /var/www/html/vendor/bin/phpunit -c phpunit.xml.dist
@@ -14,6 +15,7 @@
     <testsuites>
         <testsuite name="unit">
             <directory suffix="Test.php">Test/Unit</directory>
+            <directory suffix="Test.php">wishlist/Test/Unit</directory>
         </testsuite>
     </testsuites>
 </phpunit>

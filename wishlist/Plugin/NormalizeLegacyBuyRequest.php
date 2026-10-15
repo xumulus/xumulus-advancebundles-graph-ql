@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Xumulus\AdvanceBundlesGraphQl\Plugin\Wishlist;
+namespace Xumulus\AdvanceBundlesGraphQlWishlist\Plugin;
 
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Wishlist\Model\Item;

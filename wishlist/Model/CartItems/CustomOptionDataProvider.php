@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Xumulus\AdvanceBundlesGraphQl\Model\Wishlist\CartItems;
+namespace Xumulus\AdvanceBundlesGraphQlWishlist\Model\CartItems;
 
 use Magento\Wishlist\Model\Item;
 use Magento\WishlistGraphQl\Model\CartItems\CartItemsRequestDataProviderInterface;
@@ -20,7 +20,7 @@ use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
  * to "bundle/..." selected options but knows nothing about bundle_custom_option, so without this the saved texts
  * were dropped, and a bundle whose chosen item requires a text could not be moved to the cart at all.
  *
- * Each saved text becomes an xab-custom entered option, which Model\Cart\BuyRequest\CustomOptionDataProvider turns
+ * Each saved text becomes an xab-custom entered option, which the GraphQL package's cart provider turns
  * back into bundle_custom_option. Only values for selections core passes on are included, so they never fail the
  * "item not selected" check: core encodes an option only when the buy request holds a single selection id for it
  * (a select or radio option). Empty values are left out, as the storefront form posts an input for every item.

@@ -7,8 +7,9 @@
  *   2. the store's vendor/autoload.php when the module sits in app/code/Xumulus/AdvanceBundlesGraphQl;
  *   3. the store's vendor/autoload.php when the module is installed in vendor/xumulus/.
  * The main module, Xumulus_AdvanceBundles, comes from that install (app/code or vendor/), or from the checkout named
- * by the XAB_MAIN_MODULE environment variable. This checkout is mapped onto its namespace, so the tests always run
- * against these files, and Magento's unit-test generators are registered so tests can mock *Factory classes.
+ * by the XAB_MAIN_MODULE environment variable. This checkout and its wishlist/ bridge are mapped onto their
+ * namespaces, so the tests always run against these files, and Magento's unit-test generators are registered so
+ * tests can mock *Factory classes.
  */
 declare(strict_types=1);
 
@@ -46,6 +47,7 @@ if (!$loader instanceof ClassLoader) {
 }
 
 $loader->addPsr4('Xumulus\\AdvanceBundlesGraphQl\\', $moduleRoot . '/', true);
+$loader->addPsr4('Xumulus\\AdvanceBundlesGraphQlWishlist\\', $moduleRoot . '/wishlist/', true);
 $mainModule = (string)getenv('XAB_MAIN_MODULE');
 if ($mainModule !== '') {
     $loader->addPsr4('Xumulus\\AdvanceBundles\\', rtrim($mainModule, '/') . '/', true);

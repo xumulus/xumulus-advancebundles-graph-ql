@@ -1,14 +1,14 @@
 <?php
 declare(strict_types=1);
 
-namespace Xumulus\AdvanceBundlesGraphQl\Test\Unit\Plugin\Wishlist;
+namespace Xumulus\AdvanceBundlesGraphQlWishlist\Test\Unit\Plugin;
 
 use Magento\Framework\DataObject;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Wishlist\Model\Item;
 use Magento\WishlistGraphQl\Model\CartItems\CartItemsRequestBuilder;
 use PHPUnit\Framework\TestCase;
-use Xumulus\AdvanceBundlesGraphQl\Plugin\Wishlist\NormalizeLegacyBuyRequest;
+use Xumulus\AdvanceBundlesGraphQlWishlist\Plugin\NormalizeLegacyBuyRequest;
 
 class NormalizeLegacyBuyRequestTest extends TestCase
 {

@@ -18,13 +18,4 @@
     <type name="Magento\Bundle\Model\Product\Type">
         <plugin name="xumulus_advancebundlesgraphql_reject_unknown_custom_options" type="Xumulus\AdvanceBundlesGraphQl\Plugin\RejectUnknownCustomOptions" sortOrder="30"/>
     </type>
-    <!-- addWishlistItemsToCart: the texts saved on a wishlist bundle become xab-custom entered_options -->
-    <type name="Magento\WishlistGraphQl\Model\CartItems\CartItemsRequestBuilder">
-        <arguments>
-            <argument name="providers" xsi:type="array">
-                <item name="xab_bundle_custom_option" xsi:type="object">Xumulus\AdvanceBundlesGraphQl\Model\Wishlist\CartItems\CustomOptionDataProvider</item>
-            </argument>
-        </arguments>
-        <plugin name="xumulus_advancebundlesgraphql_normalize_legacy_wishlist_buy_request" type="Xumulus\AdvanceBundlesGraphQl\Plugin\Wishlist\NormalizeLegacyBuyRequest"/>
-    </type>
 </config>

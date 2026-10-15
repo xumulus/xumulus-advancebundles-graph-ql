@@ -1,0 +1,4 @@
+# Files that belong in the repository but not in the distributed package.
+# Build the release zip from this directory, e.g. git archive --format=zip HEAD:wishlist, or split it into its own
+# repository with git subtree split --prefix=wishlist.
+/.gitattributes    export-ignore

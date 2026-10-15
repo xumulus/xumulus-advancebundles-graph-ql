@@ -11,7 +11,6 @@
             <module name="Magento_BundleGraphQl"/>
             <module name="Magento_QuoteGraphQl"/>
             <module name="Magento_Widget"/>
-            <module name="Magento_WishlistGraphQl"/>
             <module name="Xumulus_AdvanceBundles"/>
         </sequence>
     </module>

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Xumulus\AdvanceBundlesGraphQl\Test\Unit\Model\Wishlist\CartItems;
+namespace Xumulus\AdvanceBundlesGraphQlWishlist\Test\Unit\Model\CartItems;
 
 use Magento\Framework\DataObject;
 use Magento\Quote\Model\Cart\Data\CartItemFactory;
@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 use Xumulus\AdvanceBundles\Model\Config;
 use Xumulus\AdvanceBundlesGraphQl\Model\Cart\BuyRequest\CustomOptionDataProvider as CartProvider;
 use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionUid;
-use Xumulus\AdvanceBundlesGraphQl\Model\Wishlist\CartItems\CustomOptionDataProvider;
+use Xumulus\AdvanceBundlesGraphQlWishlist\Model\CartItems\CustomOptionDataProvider;
 
 class CustomOptionDataProviderTest extends TestCase
 {

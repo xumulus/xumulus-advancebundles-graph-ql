@@ -1,0 +1,31 @@
+{
+    "name": "xumulus/advancebundles-graph-ql-wishlist",
+    "description": "Wishlist GraphQL support for Xumulus Advanced Bundles: bundle item texts in addProductsToWishlist, updateProductsInWishlist and addWishlistItemsToCart.",
+    "type": "magento2-module",
+    "version": "2.0.0",
+    "license": "proprietary",
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0||~8.5.0",
+        "magento/framework": "^103.0.7",
+        "magento/module-wishlist": "^101.2.7",
+        "magento/module-wishlist-graph-ql": "^100.4.7",
+        "xumulus/advancebundles-graph-ql": "^2.0.0",
+        "xumulus/xumulus-advancebundles": "^2.0.0"
+    },
+    "authors": [
+        {
+            "name": "Daniel Kozlowski",
+            "email": "daniel.kozlowski@xumulus.com",
+            "homepage": "https://www.xumulus.com",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Xumulus\\AdvanceBundlesGraphQlWishlist\\": ""
+        }
+    }
+}

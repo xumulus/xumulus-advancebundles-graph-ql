@@ -174,7 +174,7 @@ bin/magento module:enable Xumulus_AdvanceBundlesGraphQlWishlist
 ```
 
 It saves the `xab-custom` entered options of `addProductsToWishlist` and `updateProductsInWishlist` with the
-wishlist item and carries them over in `addWishlistItemsToCart` (see its README in `wishlist/`). Without it,
+wishlist item and carries them over in `addWishlistItemsToCart` (see [its README](https://github.com/xumulus/xumulus-advancebundles-graph-ql-wishlist)). Without it,
 Magento drops those entered options when it saves a wishlist item, and `addWishlistItemsToCart` cannot move a
 bundle whose chosen item requires a text, because required texts are enforced as described above.
 
@@ -213,14 +213,14 @@ items are resolved together: one query for the bundle selections and one per sto
 ## Development
 
 ```bash
-# Unit tests of both packages (PHPUnit 10.5 to 12), from a Magento install's vendor/:
+# Unit tests (PHPUnit 10.5 to 12), from a Magento install's vendor/:
 XAB_AUTOLOAD=/var/www/html/vendor/autoload.php /var/www/html/vendor/bin/phpunit -c phpunit.xml.dist
 
 # GraphQL API tests against a running store with the QA fixtures (bash, curl, jq):
 Test/Api/run-graphql-tests.sh
 XAB_DB='docker exec -i 249-db-1 mariadb -umagento -pmagento magento -N -B' Test/Api/run-graphql-tests.sh
 XAB_EXPECT_DISABLED=1 Test/Api/run-graphql-tests.sh   # with the extension disabled
-# Wishlist bridge too (a customer whose wishlist the tests may fill):
+# Wishlist bridge too, when it is installed (a customer whose wishlist the tests may fill):
 XAB_CUSTOMER='someone@example.com Password123!' Test/Api/run-graphql-tests.sh
 # Also check a guest order and a guest cart created with 1.3.x (no stored entries):
 XAB_LEGACY_ORDER='000000003 qa-order@example.test Tester' XAB_LEGACY_CART='<masked cart id>' \

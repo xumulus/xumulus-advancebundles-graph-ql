@@ -9,6 +9,3 @@
 
 # GraphQL API tests: they need a running store with the fixtures
 /Test/Api          export-ignore
-
-# The wishlist bridge is a separate package (xumulus/advancebundles-graph-ql-wishlist), see wishlist/README.md
-/wishlist          export-ignore

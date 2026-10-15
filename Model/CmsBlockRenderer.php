@@ -169,10 +169,8 @@ class CmsBlockRenderer implements ResetAfterRequestInterface
 
             return $this->filter->filterDirective((string)$block->getContent());
         } catch (\Exception $e) {
-            $this->logger->error(
-                sprintf('Xumulus_AdvanceBundlesGraphQl: CMS block "%s" could not be rendered.', $block->getIdentifier()),
-                ['exception' => $e]
-            );
+            $message = sprintf('CMS block "%s" could not be rendered.', $block->getIdentifier());
+            $this->logger->error('Xumulus_AdvanceBundlesGraphQl: ' . $message, ['exception' => $e]);
 
             return null;
         }

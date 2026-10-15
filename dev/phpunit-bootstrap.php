@@ -40,9 +40,9 @@ foreach ($candidates as $candidate) {
 }
 
 if (!$loader instanceof ClassLoader) {
-    fwrite(STDERR, "No Composer autoloader with Magento found. Set XAB_AUTOLOAD to a Magento install's"
-        . " vendor/autoload.php.\n");
-    exit(1);
+    throw new RuntimeException(
+        "No Composer autoloader with Magento found. Set XAB_AUTOLOAD to a Magento install's vendor/autoload.php."
+    );
 }
 
 $loader->addPsr4('Xumulus\\AdvanceBundlesGraphQl\\', $moduleRoot . '/', true);

@@ -79,7 +79,7 @@ class SelectionCustomOptions implements ResetAfterRequestInterface
     /**
      * Custom options and the resolved required flag of bundle selections.
      *
-     * @param array<int, array{option_id: int, product_id: int}> $selections by selection id
+     * @param array<int,array<string,int>> $selections by selection id: option_id and product_id
      * @param int $storeId
      * @return array<int, array{required: bool, options: list<array<string, mixed>>}> by selection id; each option
      *     has uid, option_id, title, type, required, max_characters, price, price_type and sort_order

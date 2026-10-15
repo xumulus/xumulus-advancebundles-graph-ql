@@ -113,8 +113,8 @@ class BundleItemSettings implements BatchResolverInterface
      * Value of one field for one option.
      *
      * @param string $fieldName
-     * @param array{visible: bool, cms_block: string|null, gallery_single: bool}|null $settings
-     * @param array<string, string|null> $html rendered CMS blocks by reference
+     * @param array<string,bool|string|null>|null $settings see OptionSettings
+     * @param array<string,string|null> $html rendered CMS blocks by reference
      * @return bool|string|null
      */
     private function getFieldValue(string $fieldName, ?array $settings, array $html)

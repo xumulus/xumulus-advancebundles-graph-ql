@@ -14,7 +14,10 @@ class OptionSettingsTest extends TestCase
         $attributes = $this->createStub(BundleAttributes::class);
         $attributes->method('getOptionValues')->willReturn([
             5 => ['option_id' => '5', 'hide' => '1', 'custom_bundle_block' => '', 'gallery_selection' => '0'],
-            6 => ['option_id' => '6', 'hide' => null, 'custom_bundle_block' => ' xab-option-note ', 'gallery_selection' => null],
+            6 => [
+                'option_id' => '6', 'hide' => null, 'custom_bundle_block' => ' xab-option-note ',
+                'gallery_selection' => null,
+            ],
             8 => ['option_id' => '8', 'hide' => '0', 'custom_bundle_block' => null, 'gallery_selection' => '1'],
             11 => ['option_id' => '11', 'hide' => '1', 'custom_bundle_block' => '18', 'gallery_selection' => 1],
         ]);

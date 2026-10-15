@@ -83,7 +83,9 @@ class CmsBlockRendererTest extends TestCase
         $this->filter = $this->createMock(FilterEmulate::class);
         $this->filter->expects($this->atLeastOnce())->method('setStoreId')->with(1);
         $renderer = $this->createRenderer([
-            $this->buildBlock(['block_id' => 18, 'identifier' => 'xab-option-note', 'content' => 'A', 'store_id' => [0]]),
+            $this->buildBlock(
+                ['block_id' => 18, 'identifier' => 'xab-option-note', 'content' => 'A', 'store_id' => [0]]
+            ),
             $this->buildBlock(['block_id' => 20, 'identifier' => 'other', 'content' => 'B', 'store_id' => [0]]),
         ]);
 
@@ -147,7 +149,9 @@ class CmsBlockRendererTest extends TestCase
         $this->logger = $this->createMock(LoggerInterface::class);
         $this->logger->expects($this->once())->method('error');
         $renderer = $this->createRenderer([
-            $this->buildBlock(['block_id' => 18, 'identifier' => 'broken', 'content' => '{{widget}}', 'store_id' => [0]]),
+            $this->buildBlock(
+                ['block_id' => 18, 'identifier' => 'broken', 'content' => '{{widget}}', 'store_id' => [0]]
+            ),
         ]);
 
         $this->assertSame(['broken' => null], $renderer->render(['broken'], 1));

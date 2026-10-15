@@ -69,7 +69,7 @@ class Customizations implements ResolverInterface
     /**
      * One stored entry in the schema's shape.
      *
-     * @param array<string, mixed> $entry see Entry
+     * @param array<string,mixed> $entry see Entry
      * @return array<string, int|string|null>
      */
     private function format(array $entry): array

@@ -81,7 +81,7 @@ class OptionSettings implements ResetAfterRequestInterface
     /**
      * Settings from a stored row: an option is visible unless hide is '0'; a blank CMS block is none.
      *
-     * @param array<string, mixed> $row
+     * @param array<string,mixed> $row
      * @return array{visible: bool, cms_block: string|null, gallery_single: bool}
      */
     private function map(array $row): array

@@ -75,7 +75,8 @@ class CustomizationsTest extends TestCase
     public function testReadsTheOrderItemProductOption(): void
     {
         $item = $this->createStub(OrderItem::class);
-        $item->method('getProductOptions')->willReturn(['xab_custom_options' => [self::ENTRY], 'info_buyRequest' => []]);
+        $item->method('getProductOptions')
+            ->willReturn(['xab_custom_options' => [self::ENTRY], 'info_buyRequest' => []]);
 
         $this->assertSame([self::EXPECTED], $this->resolve(['model' => $item]));
     }

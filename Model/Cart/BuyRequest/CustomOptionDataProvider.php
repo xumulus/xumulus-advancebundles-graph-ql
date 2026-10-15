@@ -24,9 +24,10 @@ use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionValues;
  *
  * A value is accepted only for a selection chosen in the same cart item, through core's "bundle/..." selected or
  * entered options, and only once per uid; that the custom option belongs to the selection's product is checked
- * once the product is known (Plugin\RejectUnknownCustomOptions). The buy request is marked (VALUES_FLAG) so that
- * check applies to these values only: buy requests that reach the cart some other way in the graphql area, such as
- * reorderItems re-adding an order saved by 1.3.x, keep the main module's lenient handling.
+ * once the product is known (Plugin\RejectUnknownCustomOptions), and that the product is a bundle at all by
+ * Plugin\Quote\RejectCustomOptionsForOtherTypes. The buy request is marked (VALUES_FLAG) so those checks apply to
+ * these values only: buy requests that reach the cart some other way in the graphql area, such as reorderItems
+ * re-adding an order saved by 1.3.x, keep the main module's lenient handling.
  *
  * For a bundle item the key is always set, even with no values, so the main module enforces required custom
  * options as the storefront does: the API offers a way to send them. Set the enforceRequired argument to false

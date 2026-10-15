@@ -26,4 +26,8 @@
     <type name="Magento\Bundle\Model\Product\Type">
         <plugin name="xumulus_advancebundlesgraphql_reject_unknown_custom_options" type="Xumulus\AdvanceBundlesGraphQl\Plugin\RejectUnknownCustomOptions" sortOrder="30"/>
     </type>
+    <!-- The keys above are only read by the bundle type: refuse or drop them for any other product type -->
+    <type name="Magento\Quote\Model\Quote">
+        <plugin name="xumulus_advancebundlesgraphql_reject_custom_options_for_other_types" type="Xumulus\AdvanceBundlesGraphQl\Plugin\Quote\RejectCustomOptionsForOtherTypes"/>
+    </type>
 </config>

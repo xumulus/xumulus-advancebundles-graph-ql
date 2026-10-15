@@ -192,4 +192,10 @@ class CustomOptionDataProviderTest extends TestCase
             $this->createCartItem(['bundle/5/9/1'], [['xab-custom/5/9/1', 'First'], ['xab-custom/5/9/1', 'Second']])
         );
     }
+
+    public function testReportsWhetherRequiredOptionsAreEnforced(): void
+    {
+        $this->assertTrue($this->createProvider()->isEnforcingRequired());
+        $this->assertFalse($this->createProvider(true, false)->isEnforcingRequired());
+    }
 }

@@ -30,7 +30,8 @@ use Xumulus\AdvanceBundlesGraphQl\Model\CustomOptionValues;
  *
  * For a bundle item the key is always set, even with no values, so the main module enforces required custom
  * options as the storefront does: the API offers a way to send them. Set the enforceRequired argument to false
- * in di.xml to only enforce them when the client sends at least one value.
+ * in di.xml to only enforce them when the client sends at least one value; LegacyBundleDataProvider (the
+ * addBundleProductsToCart mutation) follows the same setting.
  *
  * Nothing is added while the extension is disabled for the store, so our entered options are then ignored.
  */
@@ -66,6 +67,16 @@ class CustomOptionDataProvider implements BuyRequestDataProviderInterface
         $this->values = $values;
         $this->config = $config;
         $this->enforceRequired = $enforceRequired;
+    }
+
+    /**
+     * Whether required custom options are enforced for bundles added without any values.
+     *
+     * @return bool
+     */
+    public function isEnforcingRequired(): bool
+    {
+        return $this->enforceRequired;
     }
 
     /**
